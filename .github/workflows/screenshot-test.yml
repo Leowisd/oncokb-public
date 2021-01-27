@@ -18,7 +18,9 @@ jobs:
     - name: Run the frontend
       run: yarn start
     - name: Run the test
-      run: yarn run screenshot-test
+      run: |
+          yarn start 
+          yarn run screenshot-test
     - name: Archive visual regression failures
       uses: actions/upload-artifact@v2
       if: failure()
