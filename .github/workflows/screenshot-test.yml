@@ -15,8 +15,6 @@ jobs:
         node-version: 12.16.1
     - name: Install node.js packages
       run: yarn install
-    - name: Run the frontend
-      run: yarn start
     - name: Run the test
       run: |
           yarn start 
