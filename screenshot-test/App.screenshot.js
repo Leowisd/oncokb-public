@@ -20,7 +20,7 @@ describe('screenshot test', () => {
           request.respond({
             status: 200,
             contentType: 'application/json',
-            body: '{"gene":682,"alteration":5723,"tumorType":122,"drug":95,"level":[]}'
+            body: '{"gene":682,"alteration":5723,"tumorType":122,"drug":100,"level":[]}'
           });
           break;
         case "http://localhost:9095/api/private/utils/numbers/levels/":
