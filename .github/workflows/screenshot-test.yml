@@ -16,9 +16,7 @@ jobs:
     - name: Install node.js packages
       run: yarn install
     - name: Run the test
-      run: |
-          yarn start 
-          yarn run screenshot-test
+      run: yarn run screenshot-test
     - name: Archive visual regression failures
       uses: actions/upload-artifact@v2
       if: failure()
