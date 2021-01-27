@@ -1,0 +1,26 @@
+name: Screenshot Test
+
+on: [pull_request]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+    - name: Install node.js packages
+      run: yarn install
+    - name: Run the frontend
+      run: yarn start
+    - name: Run the test
+      run: yarn run screenshot-test
+    - name: Archive visual regression failures
+      uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: visual-regression-report
+        path: /home/runner/work/visual-regression-jest/visual-regression-jest/src/__image_snapshots__/__diff_output__/
+
