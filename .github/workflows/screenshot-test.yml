@@ -22,5 +22,5 @@ jobs:
       if: failure()
       with:
         name: visual-regression-report
-        path: /home/runner/work/visual-regression-jest/visual-regression-jest/src/__image_snapshots__/__diff_output__/
+        path: /home/runner/work/oncokb-public/oncokb-public/screenshot-test/__image_snapshots__/__diff_output__/
 
