@@ -1,65 +1,476 @@
 const puppeteer = require('puppeteer');
-function timeout(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-};
-describe('screenshot test', () => {
-  let browser;
+const fs = require('fs');
 
-  beforeAll(async () => {
-    browser = await puppeteer.launch();
+const DATA_DIR = './screenshot-test/data/';
+const CLIENT_URL = 'http://localhost:9000/';
+const SERVER_URL = 'http://localhost:9095/'
+const viewPort_1080 = {
+  width: 1920,
+  height: 1080,
+  deviceScaleFactor: 1,
+}
+
+const apiAccount = fs.readFileSync(`${DATA_DIR}api-account.json`).toString();
+const apiAccountToken = fs.readFileSync(`${DATA_DIR}api-account-token.json`).toString();
+const apiV1Info = fs.readFileSync(`${DATA_DIR}api-v1-info.json`).toString();
+
+let browser;
+
+beforeAll(async () => {
+  browser = await puppeteer.launch();
+});
+
+it('Home Page 1920*1080', async () => {
+  let numbersLevels = fs.readFileSync(`${DATA_DIR}private-utils-numbers-levels.json`).toString();
+  let numbersMain = fs.readFileSync(`${DATA_DIR}private-utils-numbers-main.json`).toString();
+
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);// Handle UnhandledPromiseRejectionWarning: Error: Request Interception is not enabled! 
+  page.on('request', (request) => {
+    let url = request.url()
+    switch (url) {
+      case `${SERVER_URL}api/account`:
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: apiAccount
+        });
+        break;
+      case `${SERVER_URL}api/account/tokens`:
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: apiAccountToken
+        });
+        break;
+      case `${SERVER_URL}api/private/utils/numbers/main/`:
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: numbersMain
+        });
+        break;
+      case `${SERVER_URL}api/private/utils/numbers/levels/`:
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: numbersLevels
+        });
+        break;
+      case `${SERVER_URL}api/v1/info`:
+        request.respond(
+          {
+            status: 200,
+            contentType: 'application/json',
+            body: apiV1Info
+          }
+        );
+        break;
+      default:
+        request.continue();
+    }
   });
-  var fs =require('fs');
-  var json = fs.readFileSync('./screenshot-test/test.json').toString();
-  it('Home Page', async () => {
-    const page = await browser.newPage();
-    await page.setRequestInterception(true);// Handle UnhandledPromiseRejectionWarning: Error: Request Interception is not enabled! 
-    page.on('request', (request) => {
-      let url = request.url()
-      switch(url){
-        case "http://localhost:9095/api/private/utils/numbers/main/":
+  await page.goto(`${CLIENT_URL}`);
+  await page.evaluate(() => {
+    localStorage.setItem('localdev', 'true');
+  });
+  await page.goto(`${CLIENT_URL}`);
+  await page.setViewport(viewPort_1080);
+  await page.waitFor(2000);
+  const image = await page.screenshot();
+  expect(image).toMatchImageSnapshot();
+});
+
+it('Caner Gene Page 1920*1080', async () => {
+  let geneList = fs.readFileSync(`${DATA_DIR}utils-cancerGeneList.json`).toString();
+  let allCuratedGenes = fs.readFileSync(`${DATA_DIR}utils-allCuratedGenes.json`).toString();
+
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);// Handle UnhandledPromiseRejectionWarning: Error: Request Interception is not enabled! 
+  page.on('request', (request) => {
+    let url = request.url()
+    // if (url.includes('recaptcha'))
+    //   request.abort();
+    // else{
+      switch (url) {
+        case `${SERVER_URL}api/account`:
           request.respond({
             status: 200,
             contentType: 'application/json',
-            body: '{"gene":682,"alteration":5723,"tumorType":122,"drug":100,"level":[]}'
+            body: apiAccount
           });
           break;
-        case "http://localhost:9095/api/private/utils/numbers/levels/":
+        case `${SERVER_URL}api/account/tokens`:
           request.respond({
             status: 200,
             contentType: 'application/json',
-            body: json
+            body: apiAccountToken
           });
           break;
-        case "http://localhost:9095/api/v1/info":
+        case `${SERVER_URL}api/v1/info`:
           request.respond(
             {
               status: 200,
               contentType: 'application/json',
-              body: '{"oncoTreeVersion":"oncotree_2019_12_01","ncitVersion":"19.03d","levels":[{"levelOfEvidence":"LEVEL_1","description":"FDA-recognized biomarker predictive of response to an FDA-approved drug in this indication","htmlDescription":"<span><b>FDA-recognized</b> biomarker predictive of response to an <b>FDA-approved</b> drug <b>in this indication</b></span>","colorHex":"#33A02C"},{"levelOfEvidence":"LEVEL_2","description":"Standard care biomarker recommended by the NCCN or other expert panels predictive of response to an FDA-approved drug in this indication","htmlDescription":"<span><b>Standard care</b> biomarker recommended by the NCCN or other expert panels predictive of response to an <b>FDA-approved drug</b> in this indication</span>","colorHex":"#1F78B4"},{"levelOfEvidence":"LEVEL_2A","description":"Standard care biomarker recommended by the NCCN or other expert panels predictive of response to an FDA-approved drug in this indication","htmlDescription":"<span><b>Standard care</b> biomarker recommended by the NCCN or other expert panels predictive of response to an <b>FDA-approved drug</b> in this indication</span>","colorHex":"#1F78B4"},{"levelOfEvidence":"LEVEL_2B","description":"","htmlDescription":"","colorHex":"#80B1D3"},{"levelOfEvidence":"LEVEL_3A","description":"Compelling clinical evidence supports the biomarker as being predictive of response to a drug in this indication","htmlDescription":"<span><b>Compelling clinical evidence</b> supports the biomarker as being predictive of response to a drug <b>in this indication</b> but neither biomarker and drug are standard of care</span>","colorHex":"#984EA3"},{"levelOfEvidence":"LEVEL_3B","description":"Standard care or investigational biomarker predictive of response to an FDA-approved or investigational drug in another indication","htmlDescription":"<span><b>Standard care</b> or <b>investigational</b> biomarker predictive of response to an <b>FDA-approved</b> or <b>investigational</b> drug in another indication</span>","colorHex":"#BE98CE"},{"levelOfEvidence":"LEVEL_4","description":"Compelling biological evidence supports the biomarker as being predictive of response to a drug","htmlDescription":"<span><b>Compelling biological evidence</b> supports the biomarker as being predictive of response to a drug but neither biomarker and drug are standard of care</span>","colorHex":"#424242"},{"levelOfEvidence":"LEVEL_R1","description":"Standard care biomarker predictive of resistance to an FDA-approved drug in this indication","htmlDescription":"<span><b>Standard of care</b> biomarker predictive of <b>resistance</b> to an <b>FDA-approved</b> drug <b>in this indication</b></span>","colorHex":"#EE3424"},{"levelOfEvidence":"LEVEL_R2","description":"Compelling clinical evidence supports the biomarker as being predictive of resistance to a drug","htmlDescription":"<span><b>Compelling clinical evidence</b> supports the biomarker as being predictive of <b>resistance</b> to a drug</span>","colorHex":"#F79A92"}],"dataVersion":{"version":"","date":""},"apiVersion":"v1.2.0","publicInstance":false}'
+              body: apiV1Info
+            }
+          );
+          break;
+        case `${SERVER_URL}api/v1/utils/cancerGeneList`:
+            request.respond(
+              {
+                status: 200,
+                contentType: 'application/json',
+                body: geneList
+              }
+            );
+            break;
+        case `${SERVER_URL}api/v1/utils/allCuratedGenes`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: allCuratedGenes
             }
           );
           break;
         default:
           request.continue();
       }
-    });
-    await page.goto('http://localhost:9000/');
-    await page.evaluate(() => {
-      localStorage.setItem('oncokb-user-token', '4db8f2d2-fa32-453e-ab72-3ee58ef0352b');
-      localStorage.setItem('localdev', 'true');
-    });
-    await page.goto('http://localhost:9000/');
-    await page.setViewport({
-      width: 1920,
-      height: 1080,
-      deviceScaleFactor: 1,
-    });
-    await timeout(2000);
-    const image = await page.screenshot();
-    expect(image).toMatchImageSnapshot();
+    // }
   });
+  await page.goto(`${CLIENT_URL}cancerGenes`);
+  await page.evaluate(() => {
+    localStorage.setItem('oncokb-user-token', '4db8f2d2-fa32-453e-ab72-3ee58ef0352b');
+    localStorage.setItem('localdev', 'true');
+  });
+  await page.goto(`${CLIENT_URL}cancerGenes`);
+  await page.setViewport(viewPort_1080);
+  await page.waitFor(2000);
+  const image = await page.screenshot();
+  expect(image).toMatchImageSnapshot();
+});
 
-  afterAll(async () => {
-    await browser.close();
+it('User Setting Page 1920*1080', async () => {
+
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);// Handle UnhandledPromiseRejectionWarning: Error: Request Interception is not enabled! 
+  page.on('request', (request) => {
+    let url = request.url()
+    // if (url.includes('recaptcha'))
+    //   request.abort();
+    // else
+    //   request.continue();
+    switch (url) {
+      case `${SERVER_URL}api/account`:
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: apiAccount
+        });
+        break;
+      case `${SERVER_URL}api/account/tokens`:
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: apiAccountToken
+        });
+        break;
+      default:
+        request.continue();
+    }
   });
+  await page.goto(`${CLIENT_URL}account/settings`);
+  await page.evaluate(() => {
+    localStorage.setItem('oncokb-user-token', '4db8f2d2-fa32-453e-ab72-3ee58ef0352b');
+    localStorage.setItem('localdev', 'true');
+  });
+  await page.goto(`${CLIENT_URL}account/settings`);
+  await page.setViewport(viewPort_1080);
+  await page.waitFor(2000);
+  const image = await page.screenshot({fullPage: true});
+  expect(image).toMatchImageSnapshot();
+});
+
+it('Actionable Gene Page 1920*1080', async () => {
+  let levels = fs.readFileSync(`${DATA_DIR}private-utils-evidences-levels.json`).toString();
+  let tumorTypes = fs.readFileSync(`${DATA_DIR}private-utils-tumorTypes.json`).toString();
+
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);// Handle UnhandledPromiseRejectionWarning: Error: Request Interception is not enabled! 
+  page.on('request', (request) => {
+    let url = request.url()
+    // if (url.includes('recaptcha'))
+    //   request.abort();
+    // else{
+      switch (url) {
+        case `${SERVER_URL}api/account`:
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: apiAccount
+        });
+        break;
+        case `${SERVER_URL}api/account/tokens`:
+          request.respond({
+            status: 200,
+            contentType: 'application/json',
+            body: apiAccountToken
+          });
+          break;
+        case `${SERVER_URL}api/v1/info`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: apiV1Info
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/utils/evidences/levels`:
+            request.respond(
+              {
+                status: 200,
+                contentType: 'application/json',
+                body: levels
+              }
+            );
+            break;
+        case `${SERVER_URL}api/private/utils/tumorTypes`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: tumorTypes
+            }
+          );
+          break;
+        default:
+          request.continue();
+      }
+    // }
+  });
+  await page.goto(`${CLIENT_URL}actionableGenes`);
+  await page.evaluate(() => {
+    localStorage.setItem('oncokb-user-token', '4db8f2d2-fa32-453e-ab72-3ee58ef0352b');
+    localStorage.setItem('localdev', 'true');
+  });
+  await page.goto(`${CLIENT_URL}actionableGenes`);
+  await page.setViewport(viewPort_1080);
+  await page.waitFor(2000);
+  const image = await page.screenshot({fullPage: true});
+  expect(image).toMatchImageSnapshot();
+});
+
+it('Gene Page ABL1 1920*1080', async () => {
+  let gene = fs.readFileSync(`${DATA_DIR}private-utils-numbers-gene-ABL1.json`).toString();
+  let geneQuery = fs.readFileSync(`${DATA_DIR}api-v1-genes-ABL1.json`).toString();
+  let bio = fs.readFileSync(`${DATA_DIR}api-private-search-variants-bio-ABL1.json`).toString();
+  let sampleCount = fs.readFileSync(`${DATA_DIR}api-private-utils-portalAlterationSampleCount.json`).toString();
+  let summary = fs.readFileSync(`${DATA_DIR}api-v1-evidences-ABL1-summary.json`).toString();
+  let background = fs.readFileSync(`${DATA_DIR}api-v1-evidences-ABL1-background.json`).toString();
+  let clinical = fs.readFileSync(`${DATA_DIR}api-private-search-variants-cli-ABL1.json`).toString();
+  
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);// Handle UnhandledPromiseRejectionWarning: Error: Request Interception is not enabled! 
+  page.on('request', (request) => {
+    let url = request.url()
+    if (url.includes('recaptcha'))
+      request.abort();
+    else{
+      switch (url) {
+        case `${SERVER_URL}api/v1/info`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: apiV1Info
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/utils/numbers/gene/ABL1`:
+            request.respond(
+              {
+                status: 200,
+                contentType: 'application/json',
+                body: gene
+              }
+            );
+            break;
+        case `${SERVER_URL}api/v1/genes/lookup?query=ABL1`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: geneQuery
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/search/variants/biological?hugoSymbol=ABL1`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: bio
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/utils/portalAlterationSampleCount`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: sampleCount
+            }
+          );
+          break;
+        case `${SERVER_URL}api/v1/evidences/lookup?hugoSymbol=ABL1&evidenceTypes=GENE_SUMMARY`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: summary
+            }
+          );
+          break;
+        case `${SERVER_URL}api/v1/evidences/lookup?hugoSymbol=ABL1&evidenceTypes=GENE_SUMMARY`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: summary
+            }
+          );
+          break;
+        case `${SERVER_URL}api/v1/evidences/lookup?hugoSymbol=ABL1&evidenceTypes=GENE_BACKGROUND`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: background
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/search/variants/clinical?hugoSymbol=ABL1`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: clinical
+            }
+          );
+          break;
+        default:
+          request.continue();
+      }
+    }
+  });
+  await page.goto(`${CLIENT_URL}gene/ABL1`);
+  await page.evaluate(() => {
+    localStorage.setItem('localdev', 'true');
+  });
+  await page.goto(`${CLIENT_URL}gene/ABL1`);
+  await page.setViewport(viewPort_1080);
+  await page.waitFor(2000);
+  const image = await page.screenshot({fullPage: true});
+  expect(image).toMatchImageSnapshot();
+});
+
+it('Alteration Page BCR-ABL1 Fusion 1920*1080', async () => {
+  let gene = fs.readFileSync(`${DATA_DIR}private-utils-numbers-gene-ABL1.json`).toString();
+  let geneQuery = fs.readFileSync(`${DATA_DIR}api-v1-genes-ABL1.json`).toString();
+  let bio = fs.readFileSync(`${DATA_DIR}api-private-search-variants-bio-ABL1.json`).toString();
+  let clinical = fs.readFileSync(`${DATA_DIR}api-private-search-variants-cli-ABL1.json`).toString();
+  let tumorTypes = fs.readFileSync(`${DATA_DIR}private-utils-tumorTypes.json`).toString();
+  let annotation = fs.readFileSync(`${DATA_DIR}api-private-utils-variantAnnotation-ABL1-BCR.json`).toString();
+  
+  const page = await browser.newPage();
+  await page.setRequestInterception(true);// Handle UnhandledPromiseRejectionWarning: Error: Request Interception is not enabled! 
+  page.on('request', (request) => {
+    let url = request.url()
+    if (url.includes('recaptcha'))
+      request.abort();
+    else{
+      switch (url) {
+        case `${SERVER_URL}api/v1/info`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: apiV1Info
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/utils/numbers/gene/ABL1`:
+            request.respond(
+              {
+                status: 200,
+                contentType: 'application/json',
+                body: gene
+              }
+            );
+            break;
+        case `${SERVER_URL}api/v1/genes/lookup?query=ABL1`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: geneQuery
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/search/variants/biological?hugoSymbol=ABL1`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: bio
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/search/variants/clinical?hugoSymbol=ABL1`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: clinical
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/utils/tumorTypes`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: tumorTypes
+            }
+          );
+          break;
+        case `${SERVER_URL}api/private/utils/variantAnnotation?hugoSymbol=ABL1&referenceGenome=GRCh37&alteration=BCR-ABL1%20Fusion`:
+          request.respond(
+            {
+              status: 200,
+              contentType: 'application/json',
+              body: annotation
+            }
+          );
+          break;
+        default:
+          request.continue();
+      }
+    }
+  });
+  await page.goto(`${CLIENT_URL}gene/ABL1/BCR-ABL1%20Fusion`);
+  await page.evaluate(() => {
+    localStorage.setItem('localdev', 'true');
+  });
+  await page.goto(`${CLIENT_URL}gene/ABL1/BCR-ABL1%20Fusion`);
+  await page.setViewport(viewPort_1080);
+  await page.waitFor(2000);
+  const image = await page.screenshot({fullPage: true});
+  expect(image).toMatchImageSnapshot();
+});
+
+afterAll(async () => {
+  await browser.close();
 });
